@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+
+    <style>
+        body { transition: background 0.3s ease-in-out; }
+        .card { border-radius: 15px; }
+        .bg-dark-mode { background-color: #212529 !important; color: white !important; }
+        .table th, .table td { vertical-align: middle; }
+        .toggle-dark { position: fixed; top: 15px; right: 15px; cursor: pointer; font-size: 1.5rem; }
+        canvas { max-width: 100%; height: 300px; margin-top: 20px; }
+    </style>
+</head>
+<body class="bg-light">
+    <div class="container mt-4">
+        <h1 class="text-center mb-4">🌤️ Weather Application</h1>
+        <i class="fas fa-moon toggle-dark" onclick="toggleDarkMode()"></i>
+
+        <!-- City Search Form -->
+        <form method="GET" class="d-flex justify-content-center mb-4">
+            <input type="text" name="city" class="form-control w-50" placeholder="Enter city name" required>
+            <button type="submit" class="btn btn-primary ms-2">Search</button>
+        </form>
+
+        {% if error %}
+            <div class="alert alert-danger text-center">{{ error }}</div>
+        {% endif %}
+
+        {% if weather %}
+            <!-- Current Weather -->
+            <div class="card p-4 text-center shadow-sm">
+                <h2 class="mb-3">{{ weather.city }}</h2>
+                <img src="{{ weather.weather_icon }}" alt="Weather Icon" width="80">
+                <h3 class="fw-bold">{{ weather.temperature }}°C</h3>
+                <p class="text-muted">💨 Wind Speed: {{ weather.windspeed }} km/h</p>
+            </div>
+
+            <!-- Hourly Forecast -->
+            <h3 class="mt-4 text-center">Hourly Forecast (Next 24 Hours)</h3>
+            <div class="table-responsive">
+                <table class="table table-bordered text-center table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Time</th>
+                            <th>Temperature (°C)</th>
+                            <th>Wind Speed (km/h)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for hour in weather.hourly_24 %}
+                            <tr>
+                                <td>{{ hour.time }}</td>
+                                <td>{{ hour.temp }}</td>
+                                <td>{{ hour.wind }}</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Temperature Chart -->
+            <h3 class="mt-4 text-center">Temperature Trend (Next 12 Hours)</h3>
+            <canvas id="tempChart"></canvas>
+
+            <!-- 7-Day Forecast -->
+            <h3 class="mt-4 text-center">7-Day Forecast</h3>
+            <div class="row">
+                {% for day in weather.forecast %}
+                    <div class="col-md-3 mb-3">
+                        <div class="card p-3 text-center shadow-sm">
+                            <h5 class="fw-bold">{{ day.date }}</h5>
+                            <img src="{{ day.icon }}" alt="Weather Icon" width="60">
+                            <p>🌡️ Max: <span class="fw-bold">{{ day.temp_max }}°C</span></p>
+                            <p>❄️ Min: <span class="fw-bold">{{ day.temp_min }}°C</span></p>
+                            <p>💨 Wind: <span class="fw-bold">{{ day.wind_max }} km/h</span></p>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <!-- Map -->
+            <h3 class="mt-4 text-center">City Location</h3>
+            <div id="map" style="height: 300px; width: 100%;" class="rounded border"></div>
+        {% endif %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Leaflet Map -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script>
+        {% if weather %}
+            var map = L.map('map').setView([{{ weather.latitude }}, {{ weather.longitude }}], 10);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+            L.marker([{{ weather.latitude }}, {{ weather.longitude }}]).addTo(map)
+                .bindPopup("Weather location: {{ weather.city }}")
+                .openPopup();
+        {% endif %}
+    </script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        var ctx = document.getElementById('tempChart').getContext('2d');
+        var gradient = ctx.createLinearGradient(0, 0, 0, 400);
+        gradient.addColorStop(0, 'rgba(255, 99, 132, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 99, 132, 0)');
+
+        var tempChart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [{% for hour in weather.hourly_12 %}"{{ hour.time }}",{% endfor %}],
+                datasets: [{
+                    label: 'Temperature (°C)',
+                    data: [{% for hour in weather.hourly_12 %}{{ hour.temp }},{% endfor %}],
+                    borderColor: 'red',
+                    backgroundColor: gradient,
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: { title: { display: true, text: 'Time' } },
+                    y: { title: { display: true, text: 'Temperature (°C)' } }
+                },
+                plugins: {
+                    legend: { display: true },
+                    tooltip: { enabled: true }
+                }
+            }
+        });
+
+        // Dark Mode Toggle
+        function toggleDarkMode() {
+            document.body.classList.toggle('bg-dark-mode');
+        }
+    </script>
+</body>
+</html>
