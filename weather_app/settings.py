@@ -27,7 +27,12 @@ DEBUG = False
 
 
 # ALLOWED_HOSTS = ["weather-app-ev82.onrender.com", "127.0.0.1", "localhost"]
-ALLOWED_HOSTS = ['weather-app-ev82.onrender.com', '127.0.0.1', 'localhost']
+# ALLOWED_HOSTS = ['weather-app-ev82.onrender.com', '127.0.0.1', 'localhost']
+ALLOWED_HOSTS = [
+    'localhost',
+    '127.0.0.1',
+    'weather-app-ev82.onrender.com',  # Add your Render domain here
+]
 
 
 
